@@ -1,5 +1,5 @@
 @host=http://localhost:5107
-POST  {{host}}/auth/register/
+POST  {{host}}/auth/register
 Content-Type: application/json
 
 {
