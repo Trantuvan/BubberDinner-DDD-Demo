@@ -5,6 +5,7 @@ using System.Text;
 using BubberDinner.Application.Common.Interfaces.Authentication;
 using BubberDinner.Application.Common.Interfaces.Services;
 
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace BubberDinner.Infrastructure.Authentication;
@@ -12,10 +13,11 @@ namespace BubberDinner.Infrastructure.Authentication;
 public class JwtTokenGenerator : IJwtTokenGenerator
 {
   private readonly IDateTimeProvider _dateTimeProvider;
-
-  public JwtTokenGenerator(IDateTimeProvider dateTimeProvider)
+  private readonly JwtSettings _jwtSettings;
+  public JwtTokenGenerator(IDateTimeProvider dateTimeProvider, IOptions<JwtSettings> jwtOptions)
   {
     _dateTimeProvider = dateTimeProvider;
+    _jwtSettings = jwtOptions.Value;
   }
 
   public string GenerateToken(Guid userId, string firstName, string lastName)
@@ -24,7 +26,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
     //* the length of the byte array will be depending on the SecurityAlgorithm its use
     //* HmacSHA256 will need 256 bits minimum == 32 bytes
     var signingCredentials = new SigningCredentials(
-      new SymmetricSecurityKey(Encoding.UTF8.GetBytes("nxoafxzxabwkgllyvrkdbfbkccsjtkup")),
+      new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret)),
       SecurityAlgorithms.HmacSha256);
 
     var claims = new[]
@@ -37,8 +39,9 @@ public class JwtTokenGenerator : IJwtTokenGenerator
 
     //* Issuer ben cap phep cho jwt securitytoken
     var securityToken = new JwtSecurityToken(
-      issuer: "BubberDinner",
-      expires: _dateTimeProvider.UtcNow.AddMinutes(60),
+      issuer: _jwtSettings.Issuer,
+      audience: _jwtSettings.Audience,
+      expires: _dateTimeProvider.UtcNow.AddMinutes(_jwtSettings.ExpiryMinutes),
       claims: claims,
       signingCredentials: signingCredentials);
 
