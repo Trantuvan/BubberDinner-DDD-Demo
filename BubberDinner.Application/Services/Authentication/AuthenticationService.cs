@@ -1,39 +1,67 @@
 using BubberDinner.Application.Common.Interfaces.Authentication;
+using BubberDinner.Application.Common.Persistence;
+using BubberDinner.Domain.Entities;
 
 namespace BubberDinner.Application.Services.Authentication;
 
 public class AuthenticationService : IAuthenticationService
 {
-    private readonly IJwtTokenGenerator _jwtTokenGenerator;
+  private readonly IJwtTokenGenerator _jwtTokenGenerator;
+  private readonly IUserRepository _userRepository;
+  public AuthenticationService(IJwtTokenGenerator jwtTokenGenerator, IUserRepository userRepository)
+  {
+    _jwtTokenGenerator = jwtTokenGenerator;
+    _userRepository = userRepository;
+  }
 
-    public AuthenticationService(IJwtTokenGenerator jwtTokenGenerator)
+  public AuthenticationResult Login(string email, string password)
+  {
+    //* 1 Validate the user exist
+
+    if (_userRepository.GetUserByEmail(email) is not User user)
     {
-        _jwtTokenGenerator = jwtTokenGenerator;
+      throw new Exception("User with given email does not exist");
     }
 
-    public AuthenticationResult Login(string email, string password)
+    //* 2 Validate the password correct
+
+    if (!user.Password.Equals(password))
     {
-        return new AuthenticationResult(Guid.NewGuid(),
-                                        "firstname",
-                                        "lastname",
-                                        email,
-                                        "token");
+      throw new Exception("Invalid password");
     }
 
-    public AuthenticationResult Register(string firstName, string lastName, string email, string password)
+    //* 3 Create Jwt token
+
+    var token = _jwtTokenGenerator.GenerateToken(user);
+
+    return new AuthenticationResult(user, token);
+  }
+
+  public AuthenticationResult Register(string firstName, string lastName, string email, string password)
+  {
+    //* 1 Validate the user doesn't exist
+
+    if (_userRepository.GetUserByEmail(email) is not null)
     {
-        //* Check if the user already exists
-
-        //* Create new user (generate unique ID GUID)
-        Guid userId = Guid.NewGuid();
-
-        //* Generate JWT token
-        var token = _jwtTokenGenerator.GenerateToken(userId, firstName, lastName);
-
-        return new AuthenticationResult(userId,
-                                        firstName,
-                                        lastName,
-                                        email,
-                                        token);
+      throw new Exception("User with given email already exist");
     }
+
+    //* 2 Create new user (generate unique ID GUID) & Persist to DB
+
+    var user = new User
+    {
+      Email = email,
+      Password = password,
+      FirstName = firstName,
+      LastName = lastName
+    };
+
+    _userRepository.Add(user);
+
+    //* Generate JWT token
+
+    var token = _jwtTokenGenerator.GenerateToken(user);
+
+    return new AuthenticationResult(user, token);
+  }
 }
