@@ -1,3 +1,4 @@
+using BubberDinner.Api.Middleware;
 using BubberDinner.Application;
 using BubberDinner.Infrastructure;
 
@@ -12,6 +13,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 var app = builder.Build();
 {
+    //* Global Error Handling middleware should be at 1st of the pipeline
+    //* to catch all exceptions
+    app.UseMiddleware<ErrorHandlingMiddleware>();
     app.UseHttpsRedirection();
     app.UseHsts();
     app.MapControllers();
