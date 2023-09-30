@@ -7,6 +7,7 @@ namespace BubberDinner.Api.Controllers;
 
 [ApiController]
 [Route("auth")]
+//* [ErrorHandlingFilter] manually applied error handling
 public class AuthenticationController : ControllerBase
 {
   private readonly IAuthenticationService _authenticationService;
